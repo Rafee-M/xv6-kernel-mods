@@ -27,7 +27,6 @@ pinit(void)
   initlock(&ptable.lock, "ptable");
   srand_k(1234);   // raf: seed once at boot. internal state evolves on every rand_k() call after this
 }
-}
 
 // Must be called with interrupts disabled
 int
