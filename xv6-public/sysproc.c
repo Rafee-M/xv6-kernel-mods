@@ -6,6 +6,14 @@
 #include "memlayout.h"
 #include "mmu.h"
 #include "proc.h"
+#include "rand.h" // raf: RNG
+
+// raf: Expose the kernel's RNG to user space
+int
+sys_getrandom(void)
+{
+  return rand_k();
+}
 
 int
 sys_fork(void)
