@@ -88,6 +88,7 @@ allocproc(void)
 found:
   p->state = EMBRYO;
   p->pid = nextpid++;
+  p->tickets = 10;    // raf: allocproc() is called for every new process. ensures a process can at least win the lottery. settticket() will alter this
 
   release(&ptable.lock);
 
@@ -197,6 +198,7 @@ fork(void)
     return -1;
   }
   np->sz = curproc->sz;
+  np->tickets = curproc->tickets;   // raf: child inherits parent's tickets
   np->parent = curproc;
   *np->tf = *curproc->tf;
 
