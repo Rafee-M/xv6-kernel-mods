@@ -184,6 +184,7 @@ UPROGS=\
 	_zombie\
 	_mytest\
 	_randtest\
+	_randtest-simple\
 
 fs.img: mkfs README $(UPROGS)
 	./mkfs fs.img README $(UPROGS)
