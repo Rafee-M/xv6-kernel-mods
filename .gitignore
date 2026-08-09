@@ -1,0 +1,52 @@
+# ----------------------------------
+# OS Generated Files (CRITICAL)
+# ----------------------------------
+._*
+.DS_Store
+
+# ----------------------------------
+# Build Intermediates
+# ----------------------------------
+*.o
+*.d
+*.asm
+*.sym
+
+# ----------------------------------
+# LaTeX / Documentation Artifacts
+# ----------------------------------
+*.tex
+*.dvi
+*.idx
+*.aux
+*.log
+*.ind
+*.ilg
+
+# ----------------------------------
+# Compiled Kernel / Boot Files
+# ----------------------------------
+vectors.S
+bootblock
+entryother
+initcode
+initcode.out
+kernel
+kernelmemfs
+
+# ----------------------------------
+# Disk Images
+# ----------------------------------
+*.img
+
+# ----------------------------------
+# Tools & Debugging
+# ----------------------------------
+mkfs
+.gdbinit
+
+# ----------------------------------
+# xv6 User-Space Binaries
+# (Catches _cat, _echo, _mytest, etc.)
+# ----------------------------------
+_*
