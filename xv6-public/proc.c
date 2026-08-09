@@ -6,6 +6,7 @@
 #include "x86.h"
 #include "proc.h"
 #include "spinlock.h"
+#include "rand.h" // raf: LCG import
 
 struct {
   struct spinlock lock;
@@ -24,6 +25,8 @@ void
 pinit(void)
 {
   initlock(&ptable.lock, "ptable");
+  srand_k(1234);   // raf: seed once at boot. internal state evolves on every rand_k() call after this
+}
 }
 
 // Must be called with interrupts disabled
