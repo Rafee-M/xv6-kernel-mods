@@ -465,6 +465,35 @@ sleep(void *chan, struct spinlock *lk)
   }
 }
 
+// raf: a function both wakeup and kill can call, so the revert logic can't drift out of sync
+// If p currently has tickets out on loan, claw them back and restore
+// p's own balance. Must be called with ptable.lock already held.
+// Safe to call on a process with no outstanding loan (no-op).
+static void
+reclaim_loan(struct proc *p)
+{
+  struct proc *donee;
+
+  if(p->lent_amount <= 0)
+    return;
+
+  for(donee = ptable.proc; donee < &ptable.proc[NPROC]; donee++){
+    if(donee->pid == p->lent_pid && donee->state != UNUSED){
+      if(donee->tickets >= p->lent_amount)
+        donee->tickets -= p->lent_amount;
+      else
+        donee->tickets = 0;   // defensive: donee's balance was mutated
+                                // elsewhere in a way we didn't expect
+      break;
+    }
+  }
+  // Whether or not the donee was found, the lender always gets its
+  // tickets back — a lost donee shouldn't permanently cost the lender.
+  p->tickets += p->lent_amount;
+  p->lent_pid = 0;
+  p->lent_amount = 0;
+}
+
 //PAGEBREAK!
 // Wake up all processes sleeping on chan.
 // The ptable lock must be held.
@@ -473,11 +502,13 @@ wakeup1(void *chan)
 {
   struct proc *p;
 
-  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
-    if(p->state == SLEEPING && p->chan == chan)
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+    if(p->state == SLEEPING && p->chan == chan){
       p->state = RUNNABLE;
+      reclaim_loan(p);      // auto-revert any outstanding loan on wakeup
+    }
+  }
 }
-
 // Wake up all processes sleeping on chan.
 void
 wakeup(void *chan)
@@ -500,8 +531,10 @@ kill(int pid)
     if(p->pid == pid){
       p->killed = 1;
       // Wake process from sleep if necessary.
-      if(p->state == SLEEPING)
+      if(p->state == SLEEPING){
         p->state = RUNNABLE;
+        reclaim_loan(p);        // raf: ensure if killed loaned tickets are returned
+      }
       release(&ptable.lock);
       return 0;
     }
