@@ -347,7 +347,7 @@ scheduler(void)
       continue;
     }
 
-    int winner = rand_k() % totalTickets;
+    int winner = random_range(totalTickets); // raf: use random_range
     int counter = 0;
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
       if(p->state != RUNNABLE)
