@@ -326,38 +326,46 @@ wait(void)
 //  - eventually that process transfers control
 //      via swtch back to the scheduler.
 void
+void
 scheduler(void)
 {
   struct proc *p;
   struct cpu *c = mycpu();
   c->proc = 0;
-  
-  for(;;){
-    // Enable interrupts on this processor.
-    sti();
 
-    // Loop over process table looking for process to run.
+  for(;;){
+    sti();
     acquire(&ptable.lock);
+
+    int totalTickets = 0;
+    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+      if(p->state == RUNNABLE)
+        totalTickets += p->tickets;
+
+    if(totalTickets <= 0){
+      release(&ptable.lock);
+      continue;
+    }
+
+    int winner = rand_k() % totalTickets;
+    int counter = 0;
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
       if(p->state != RUNNABLE)
         continue;
-
-      // Switch to chosen process.  It is the process's job
-      // to release ptable.lock and then reacquire it
-      // before jumping back to us.
-      c->proc = p;
-      switchuvm(p);
-      p->state = RUNNING;
-
-      swtch(&(c->scheduler), p->context);
-      switchkvm();
-
-      // Process is done running for now.
-      // It should have changed its p->state before coming back.
-      c->proc = 0;
+      counter += p->tickets;
+      if(counter > winner){
+        p->ticks++;
+        c->proc = p;
+        switchuvm(p);
+        p->state = RUNNING;
+        swtch(&(c->scheduler), p->context);
+        switchkvm();
+        c->proc = 0;
+        break;
+      }
     }
-    release(&ptable.lock);
 
+    release(&ptable.lock);
   }
 }
 
