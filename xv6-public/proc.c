@@ -91,7 +91,9 @@ found:
   p->state = EMBRYO;
   p->pid = nextpid++;
   p->tickets = 10;    // raf: allocproc() is called for every new process. ensures a process can at least win the lottery. settticket() will alter this
-
+  p->ticks = 0;
+  p->lent_pid = 0;
+  p->lent_amount = 0;
   release(&ptable.lock);
 
   // Allocate kernel stack.

@@ -50,6 +50,10 @@ struct proc {
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
   int tickets;                 // raf: number of lottery tickets owned by this process
+  int ticks;                   // number of times this process won the lottery (for getpinfo/graphs)
+  int lent_pid;                // pid of the process we've lent tickets to (0 = no outstanding loan)
+  int lent_amount;             // how many tickets are currently on loan (0 = none)
+
 };
 
 // Process memory is laid out contiguously, low addresses first:
