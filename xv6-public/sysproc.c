@@ -7,6 +7,29 @@
 #include "mmu.h"
 #include "proc.h"
 #include "rand.h" // raf: RNG
+#include "pstat.h" // raf: process info tracking
+
+int
+sys_getpinfo(void)
+{
+  struct pstat *ps;
+  struct proc *p;
+  int i = 0;
+
+  if(argptr(0, (void*)&ps, sizeof(*ps)) < 0)
+    return -1;
+
+  acquire(&ptable.lock);
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+    ps->inuse[i]   = (p->state != UNUSED);
+    ps->pid[i]     = p->pid;
+    ps->tickets[i] = p->tickets;
+    ps->ticks[i]   = p->ticks;
+    i++;
+  }
+  release(&ptable.lock);
+  return 0;
+}
 
 // raf: ticket exchange and transfer functions
 int
