@@ -13,22 +13,13 @@ int
 sys_getpinfo(void)
 {
   struct pstat *ps;
-  struct proc *p;
-  int i = 0;
 
+  // Extract the argument
   if(argptr(0, (void*)&ps, sizeof(*ps)) < 0)
     return -1;
 
-  acquire(&ptable.lock);
-  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-    ps->inuse[i]   = (p->state != UNUSED);
-    ps->pid[i]     = p->pid;
-    ps->tickets[i] = p->tickets;
-    ps->ticks[i]   = p->ticks;
-    i++;
-  }
-  release(&ptable.lock);
-  return 0;
+  // Pass it to a helper function in proc.c
+  return getpinfo(ps); 
 }
 
 // raf: ticket exchange and transfer functions
@@ -48,77 +39,18 @@ int
 sys_transfertickets(void)
 {
   int target_pid, n;
-  struct proc *p;
-  struct proc *curproc = myproc();
-  int found = 0;
-
   if(argint(0, &target_pid) < 0 || argint(1, &n) < 0)
     return -1;
-  if(n <= 0)
-    return -1;
-  if(target_pid == curproc->pid)
-    return -1;                        // reject self-transfer
-
-  acquire(&ptable.lock);
-
-  // Caller must retain at least 1 ticket after transferring.
-  if(curproc->tickets <= n){
-    release(&ptable.lock);
-    return -1;
-  }
-  // Only one outstanding loan tracked at a time — reject stacking.
-  if(curproc->lent_amount > 0){
-    release(&ptable.lock);
-    return -1;
-  }
-
-  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-    if(p->pid == target_pid && p->state != UNUSED && p->state != ZOMBIE){
-      found = 1;
-      break;
-    }
-  }
-  if(!found){
-    release(&ptable.lock);
-    return -1;
-  }
-
-  curproc->tickets -= n;
-  p->tickets += n;
-  curproc->lent_pid = target_pid;   // record the loan for later auto-revert
-  curproc->lent_amount = n;
-
-  release(&ptable.lock);
-  return 0;
+  return transfertickets(target_pid, n);
 }
 
 int
 sys_exchangetickets(void)
 {
-  int target_pid, tmp;
-  struct proc *p;
-  struct proc *curproc = myproc();
-
+  int target_pid;
   if(argint(0, &target_pid) < 0)
     return -1;
-  if(target_pid == curproc->pid)
-    return -1;                        // reject self-exchange
-
-  acquire(&ptable.lock);
-
-  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-    if(p->pid == target_pid && p->state != UNUSED && p->state != ZOMBIE){
-      tmp = curproc->tickets;
-      curproc->tickets = p->tickets;
-      p->tickets = tmp;
-      release(&ptable.lock);
-      return 0;                       // exchange does NOT create a loan —
-                                        // it's a permanent swap, not reverted
-    }
-  }
-
-  release(&ptable.lock);
-  return -1;
+  return exchangetickets(target_pid);
 }
 
 // raf: Expose the kernel's RNG to user space
