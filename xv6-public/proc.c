@@ -120,6 +120,98 @@ found:
   return p;
 }
 
+// raf: move from sysproc to proc
+// proc.c
+
+int
+getpinfo(struct pstat *ps)
+{
+  struct proc *p;
+  int i = 0;
+
+  acquire(&ptable.lock);
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+    ps->inuse[i]   = (p->state != UNUSED);
+    ps->pid[i]     = p->pid;
+    ps->tickets[i] = p->tickets;
+    ps->ticks[i]   = p->ticks;
+    i++;
+  }
+  release(&ptable.lock);
+  return 0;
+}
+
+int
+transfertickets(int target_pid, int n)
+{
+  struct proc *p;
+  struct proc *curproc = myproc();
+  int found = 0;
+
+  if(n <= 0)
+    return -1;
+  if(target_pid == curproc->pid)
+    return -1;                 
+
+  acquire(&ptable.lock);
+
+  // Caller must retain at least 1 ticket after transferring.
+  if(curproc->tickets <= n){
+    release(&ptable.lock);
+    return -1;
+  }
+  // Only one outstanding loan tracked at a time — reject stacking.
+  if(curproc->lent_amount > 0){
+    release(&ptable.lock);
+    return -1;
+  }
+
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+    if(p->pid == target_pid && p->state != UNUSED && p->state != ZOMBIE){
+      found = 1;
+      break;
+    }
+  }
+  if(!found){
+    release(&ptable.lock);
+    return -1;
+  }
+
+  curproc->tickets -= n;
+  p->tickets += n;
+  curproc->lent_pid = target_pid;   
+  curproc->lent_amount = n;
+
+  release(&ptable.lock);
+  return 0;
+}
+
+int
+exchangetickets(int target_pid)
+{
+  struct proc *p;
+  struct proc *curproc = myproc();
+  int tmp;
+
+  if(target_pid == curproc->pid)
+    return -1;                 
+
+  acquire(&ptable.lock);
+
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+    if(p->pid == target_pid && p->state != UNUSED && p->state != ZOMBIE){
+      tmp = curproc->tickets;
+      curproc->tickets = p->tickets;
+      p->tickets = tmp;
+      release(&ptable.lock);
+      return 0;
+    }
+  }
+
+  release(&ptable.lock);
+  return -1;
+}
+
 //PAGEBREAK: 32
 // Set up first user process.
 void
