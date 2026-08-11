@@ -9,6 +9,7 @@ struct spinlock;
 struct sleeplock;
 struct stat;
 struct superblock;
+struct pstat; // raf: sysproc to proc
 
 // bio.c
 void            binit(void);
