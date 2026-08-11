@@ -1,0 +1,88 @@
+#include "types.h"
+#include "stat.h"
+#include "user.h"
+#include "pstat.h"
+
+int
+main(void)
+{
+  struct pstat ps;
+  int cpu_pid, io_pid, interactive_pid;
+  int inpipe[2];
+  int NUM_EVENTS = 10;
+  pipe(inpipe);
+
+  cpu_pid = fork();
+  if(cpu_pid == 0){
+    close(inpipe[0]);
+    close(inpipe[1]);
+    settickets(20);
+    volatile unsigned long i;                 // unsigned: safely holds large counts
+    for(i = 0; i < 1900000000; i++)            // kept under the 32-bit signed ceiling
+      ;
+    exit();
+  }
+
+  io_pid = fork();
+  if(io_pid == 0){
+    close(inpipe[0]);
+    close(inpipe[1]);
+    settickets(20);
+    int k;
+    for(k = 0; k < 20; k++){
+      volatile long j;
+      for(j = 0; j < 20000000; j++)
+        ;
+      sleep(5);
+    }
+    exit();
+  }
+
+  interactive_pid = fork();
+  if(interactive_pid == 0){
+    close(inpipe[1]);                          // only reads — close the write end
+    settickets(20);
+    char buf[1];
+    int k;
+    for(k = 0; k < NUM_EVENTS; k++){
+      int t0 = uptime();
+      read(inpipe[0], buf, 1);
+      int t1 = uptime();
+      printf(1, "LATENCY,%d,%d\n", uptime(), t1 - t0);   // machine-parseable line
+    }
+    close(inpipe[0]);
+    exit();
+  }
+
+  close(inpipe[0]);                            // parent only writes
+
+  int i;
+  int events_sent = 0;
+  int total_samples = 25;                      // enough iterations to guarantee
+                                                  // NUM_EVENTS writes fit inside it
+  for(i = 0; i < total_samples && events_sent < NUM_EVENTS; i++){
+    sleep(6);
+    if(i % 2 == 0){
+      write(inpipe[1], "k", 1);
+      events_sent++;
+    }
+
+    getpinfo(&ps);
+    int idx;
+    for(idx = 0; idx < NPROC; idx++){
+      if(ps.inuse[idx] && (ps.pid[idx] == cpu_pid || ps.pid[idx] == io_pid || ps.pid[idx] == interactive_pid))
+        printf(1, "SAMPLE,%d,%d,%d,%d\n", uptime(), ps.pid[idx], ps.tickets[idx], ps.ticks[idx]);
+    }
+  }
+  // Guarantee any remaining events get sent even if the sampling loop
+  // ended early, so the interactive child can never be left hanging.
+  while(events_sent < NUM_EVENTS){
+    write(inpipe[1], "k", 1);
+    events_sent++;
+  }
+  close(inpipe[1]);
+
+  kill(cpu_pid);
+  wait(); wait(); wait();
+  exit();
+}
