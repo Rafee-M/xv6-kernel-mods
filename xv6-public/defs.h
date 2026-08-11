@@ -121,6 +121,11 @@ int             wait(void);
 void            wakeup(void*);
 void            yield(void);
 
+// raf: sysproc to proc
+int             getpinfo(struct pstat*);
+int             transfertickets(int, int);
+int             exchangetickets(int);
+
 // swtch.S
 void            swtch(struct context**, struct context*);
 
