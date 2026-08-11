@@ -7,6 +7,7 @@
 #include "proc.h"
 #include "spinlock.h"
 #include "rand.h" // raf: LCG import
+#include "pstat.h"
 
 struct {
   struct spinlock lock;
