@@ -185,6 +185,7 @@ UPROGS=\
 	_mytest\
 	_randtest\
 	_randtest-simple\
+	_symlinktest\
 
 fs.img: mkfs README $(UPROGS)
 	./mkfs fs.img README $(UPROGS)

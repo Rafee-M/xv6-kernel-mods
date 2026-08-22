@@ -25,3 +25,4 @@
 #define SYS_getpinfo         24
 #define SYS_transfertickets  25
 #define SYS_exchangetickets  26
+#define SYS_symlink          27

@@ -29,6 +29,7 @@ int settickets(int number);
 int getpinfo(struct pstat*);
 int transfertickets(int pid, int n);
 int exchangetickets(int pid); // raf: syscall for ticket transactions
+int symlink(const char*, const char*);
 
 // ulib.c
 int stat(const char*, struct stat*);

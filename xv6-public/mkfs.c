@@ -5,6 +5,10 @@
 #include <fcntl.h>
 #include <assert.h>
 
+#ifndef O_BINARY
+#define O_BINARY 0
+#endif
+
 #define stat xv6_stat  // avoid clash with host struct stat
 #include "types.h"
 #include "fs.h"
@@ -84,7 +88,7 @@ main(int argc, char *argv[])
   assert((BSIZE % sizeof(struct dinode)) == 0);
   assert((BSIZE % sizeof(struct dirent)) == 0);
 
-  fsfd = open(argv[1], O_RDWR|O_CREAT|O_TRUNC, 0666);
+  fsfd = open(argv[1], O_RDWR|O_CREAT|O_TRUNC|O_BINARY, 0666);
   if(fsfd < 0){
     perror(argv[1]);
     exit(1);
@@ -130,7 +134,7 @@ main(int argc, char *argv[])
   for(i = 2; i < argc; i++){
     assert(index(argv[i], '/') == 0);
 
-    if((fd = open(argv[i], 0)) < 0){
+    if((fd = open(argv[i], O_RDONLY|O_BINARY)) < 0){
       perror(argv[i]);
       exit(1);
     }

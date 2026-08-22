@@ -108,6 +108,7 @@ extern int sys_settickets(void);
 extern int sys_getpinfo(void);
 extern int sys_transfertickets(void);
 extern int sys_exchangetickets(void);
+extern int sys_symlink(void);
 
 static int (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
@@ -136,6 +137,7 @@ static int (*syscalls[])(void) = {
 [SYS_getpinfo]        sys_getpinfo,
 [SYS_transfertickets] sys_transfertickets,
 [SYS_exchangetickets] sys_exchangetickets,
+[SYS_symlink]         sys_symlink,
 };
 
 void
